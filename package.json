@@ -1,0 +1,15 @@
+{
+  "name": "social-pipeline",
+  "version": "1.0.0",
+  "description": "PostNorth — AI Social Media Content Pipeline",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev":    "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test":   "node test/manual-trigger.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
