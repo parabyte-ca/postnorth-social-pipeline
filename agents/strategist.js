@@ -46,7 +46,7 @@ Return this exact JSON structure — an array of exactly 30 objects:
   }
 ]`;
 
-  const raw = await callClaude(env, { system, user, maxTokens: 3000 });
+  const raw = await callClaude(env, { system, user, maxTokens: 4000 });
   const calendar = parseJSON(raw);
 
   console.log(`[Strategist] Calendar skeleton built: ${calendar.length} posts`);

@@ -1,36 +1,32 @@
 // agents/writer.js
-// Agent 3: Write full captions for every post in the calendar skeleton
-// Batches posts by platform to keep prompts focused and token-efficient
+// Writes captions in batches of 5 per API call to avoid token truncation
 
 import { callClaude, parseJSON } from "../utils/claude.js";
 
+const BATCH_SIZE = 5;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const PLATFORM_GUIDANCE = {
-  LinkedIn: `
-- Professional but human tone
+  LinkedIn: `- Professional but human tone
 - 150-300 words optimal
-- Start with a strong hook line (no "I'm excited to share...")
-- Use line breaks generously for readability
-- End with a thoughtful question or clear CTA
-- 3-5 relevant hashtags at the end`,
-
-  Instagram: `
-- Conversational, warm, visual-first tone
-- 100-200 words optimal  
-- Start with an attention-grabbing first line (it's above the fold)
-- Emojis are welcome but not excessive
+- Strong hook first line (no "I'm excited to share...")
+- Line breaks for readability
+- End with question or clear CTA
+- 3-5 hashtags at the end`,
+  Instagram: `- Conversational, warm, visual-first tone
+- 100-200 words optimal
+- Attention-grabbing first line above the fold
+- Emojis welcome but not excessive
 - CTA: comment, save, or share
-- 8-12 hashtags at the end (mix popular + niche)`,
-
-  Facebook: `
-- Friendly, community-oriented tone
+- 8-12 hashtags (mix popular + niche)`,
+  Facebook: `- Friendly, community-oriented tone
 - 100-250 words optimal
 - Conversational, like talking to a neighbour
 - Encourage comments and sharing
-- 2-3 hashtags max (Facebook doesn't reward hashtag stuffing)`,
+- 2-3 hashtags max`,
 };
 
 export async function runWriter(env, client, brief, calendarSkeleton) {
-  // Group posts by platform for focused batching
   const byPlatform = {};
   for (const post of calendarSkeleton) {
     if (!byPlatform[post.platform]) byPlatform[post.platform] = [];
@@ -40,48 +36,40 @@ export async function runWriter(env, client, brief, calendarSkeleton) {
   const allWrittenPosts = [];
 
   for (const [platform, posts] of Object.entries(byPlatform)) {
-    const system = `You are an expert social media copywriter specialising in ${platform}.
-You write in the authentic voice of the business, never sounding like AI-generated content.
-Always respond with valid JSON only — no preamble, no markdown fences.`;
+    // Split into batches of BATCH_SIZE to stay well under output token limit
+    for (let i = 0; i < posts.length; i += BATCH_SIZE) {
+      const batch = posts.slice(i, i + BATCH_SIZE);
 
-    const user = `Write full ${platform} captions for these ${posts.length} posts.
+      const system = `You are an expert social media copywriter for ${platform}.
+Write in the authentic voice of the business. JSON only — no prose, no markdown fences.`;
 
+      const user = `Write ${platform} captions for these ${batch.length} posts.
 Business: ${client.clientName}
-Voice/Tone: ${brief.toneGuidance}
-Business Summary: ${brief.businessSummary}
-Target Audience: ${brief.audience}
-Key Messages: ${brief.keyMessages.join(", ")}
-${client.existingSamples ? `Sample of their existing content for voice reference:\n"${client.existingSamples}"` : ""}
+Tone: ${brief.toneGuidance}
+Summary: ${brief.businessSummary}
+Audience: ${brief.audience}
+Key messages: ${brief.keyMessages.join(", ")}
+${client.existingSamples ? `Voice sample: "${client.existingSamples}"` : ""}
 
-Platform guidance for ${platform}:
+Platform rules:
 ${PLATFORM_GUIDANCE[platform]}
 
-Posts to write:
-${JSON.stringify(posts, null, 2)}
+Posts:
+${JSON.stringify(batch, null, 2)}
 
-Return an array of objects with this structure:
-[
-  {
-    "postId": <same postId from input>,
-    "platform": "${platform}",
-    "contentType": "<same as input>",
-    "day": <same day>,
-    "caption": "full written caption here",
-    "hashtags": ["#tag1", "#tag2"],
-    "cta": "the specific call to action used",
-    "suggestedImagePrompt": "brief description of ideal image/graphic for this post"
-  }
-]`;
+Return a JSON array with exactly ${batch.length} objects:
+[{"postId":<id>,"platform":"${platform}","contentType":"<same>","day":<day>,"caption":"full caption","hashtags":["#tag"],"cta":"call to action","suggestedImagePrompt":"image description"}]`;
 
-    const raw = await callClaude(env, { system, user, maxTokens: 4000 });
-    const written = parseJSON(raw);
-    allWrittenPosts.push(...written);
+      const raw = await callClaude(env, { system, user, maxTokens: 5000 });
+      const written = parseJSON(raw);
+      allWrittenPosts.push(...written);
+      console.log(`[Writer] Wrote ${written.length} ${platform} posts (batch ${Math.floor(i/BATCH_SIZE)+1})`);
 
-    console.log(`[Writer] Wrote ${written.length} ${platform} posts`);
+      // Small pause between batches to ease rate limit pressure
+      if (i + BATCH_SIZE < posts.length) await sleep(2000);
+    }
   }
 
-  // Re-sort by postId to restore original order
   allWrittenPosts.sort((a, b) => a.postId - b.postId);
-
   return allWrittenPosts;
 }

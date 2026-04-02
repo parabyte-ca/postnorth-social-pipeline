@@ -343,7 +343,7 @@ export function buildPdfHtml(pdfData) {
 
 <!-- Cover Page -->
 <div class="cover">
-  <div class="cover-logo">Lantix Advisory Group</div>
+  <div class="cover-logo">POSTNORTH</div>
   <div>
     <div class="cover-accent"></div>
     <div class="cover-title">${clientName}<br><em style="color:rgba(255,255,255,0.5)">Social Content</em></div>
@@ -358,7 +358,7 @@ export function buildPdfHtml(pdfData) {
   </div>
   <div class="cover-meta">
     Generated ${new Date(generatedAt).toLocaleDateString("en-CA", { dateStyle: "long" })} · 
-    Confidential · Lantix Advisory Group
+    Confidential · POSTNORTH
   </div>
 </div>
 
@@ -421,7 +421,7 @@ ${flagsHtml}
 
 <!-- Footer -->
 <div class="doc-footer">
-  <strong>Lantix Advisory Group</strong> · lantixadvisory.com · 
+  <strong>POSTNORTH</strong> · postnorth.ca · 
   Prepared exclusively for ${clientName} · ${monthYear}
 </div>
 

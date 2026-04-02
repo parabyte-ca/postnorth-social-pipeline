@@ -4,9 +4,9 @@
 import { callClaude, parseJSON } from "../utils/claude.js";
 
 export async function runResearcher(env, client) {
-  const system = `You are a sharp marketing researcher. Your job is to build a concise 
-business context brief that will be used to generate a month of social media content.
-Always respond with valid JSON only — no preamble, no markdown fences.`;
+  const system = `You are a marketing research API. You ONLY output raw JSON — never prose, 
+never markdown, never explanations. Your entire response must be a single valid JSON object 
+starting with { and ending with }. No other characters before or after.`;
 
   const user = `Research this business and return a JSON brief.
 
@@ -16,13 +16,7 @@ Industry: ${client.industry}
 Target Audience: ${client.targetAudience}
 Tone preference: ${client.tone}
 
-Use web search to:
-1. Find 6-8 trending topics/hashtags in their industry this month
-2. Identify what content formats (tips, stories, stats, questions, etc.) perform well in this niche
-3. Note 2-3 content angles their competitors commonly use
-4. Summarise what their website says they do (if URL provided)
-
-Return this exact JSON structure:
+Use web search to find trending topics in their industry, then return ONLY this JSON:
 {
   "businessSummary": "2-3 sentence plain-English summary of what they do",
   "audience": "who their customers are",
